@@ -6,10 +6,15 @@ import {
 
 import Stats from 'three/addons/libs/stats.module.js';
 
+///
+import {
+    GUI
+} from 'three/addons/libs/lil-gui.module.min.js';
+
 let renderer, scene, camera;
 let world = {
-    x: 80,
-    z: 80
+    x: 100,
+    z: 100
 };
 let agentData = [];
 let pickableObjects = [];
@@ -25,13 +30,23 @@ wallsData.push({
     });
 
 wallsData.push({
-        "x": 25.0,
+        "x": 0.0,
         "y": 0,
-        "z": 25.0,
+        "z": 0.0,
         "dx":5.0,
         "dy":5.0,
         "dz":5.0,
     });
+
+///
+let gui, previousAction = 'Random',
+    activeAction;
+const api = {
+    Blockstate: 'Block',
+    Agentstate: 'Agent',
+    camera: 'Camera'
+};
+let activeCamera;
 
 let C_QUANTIZATION = 10;
 let selected = null;
@@ -121,7 +136,7 @@ function init() {
     topTexture.repeat.set(3, 3);
     //topTexture.rotation = -Math.PI / 2;
     // grid
-    const geometry = new THREE.PlaneGeometry(world.x, world.z, 10, 10);
+    const geometry = new THREE.PlaneGeometry(world.x, world.z, 30, 30);
     const material = new THREE.MeshPhongMaterial({
         map: texture,
         //side: THREE.DoubleSide,
@@ -150,7 +165,7 @@ function init() {
         }
     }
 
-
+    createGUI();
 
     function addGridCells(world)
     {
@@ -245,7 +260,7 @@ function init() {
     goalY = 20;
     world.distanceConstraints = [];
 
-    addColumnAgentGroup(agentData, 3, RADIUS * 4, {
+    addColumnAgentGroup(agentData, 13, RADIUS * 4, {
             x: 30,
             z: 25
         }, {
@@ -254,7 +269,7 @@ function init() {
         },
         0.6, "X", );
 
-    addColumnAgentGroup(agentData, 4, RADIUS * 4, {
+    addColumnAgentGroup(agentData, 13, RADIUS * 4, {
             x: 25,
             z: 20
         }, {
@@ -263,7 +278,7 @@ function init() {
         },
         0.7, "X", );
 
-    addColumnAgentGroup(agentData, 4, RADIUS * 4, {
+    addColumnAgentGroup(agentData, 13, RADIUS * 4, {
             x: 25,
             z: 10
         }, {
@@ -272,7 +287,7 @@ function init() {
         },
         0.8, "X", );
 
-    addColumnAgentGroup(agentData, 4, RADIUS * 4, {
+    addColumnAgentGroup(agentData, 13, RADIUS * 4, {
             x: 25,
             z: 6
         }, {
@@ -281,7 +296,7 @@ function init() {
         },
         0.8, "X", );
 
-    addColumnAgentGroup(agentData, 3, RADIUS * 4, {
+    addColumnAgentGroup(agentData, 12, RADIUS * 4, {
             x: -25,
             z: 12
         }, {
@@ -290,7 +305,7 @@ function init() {
         },
         0.6, "X", );
 
-    addColumnAgentGroup(agentData, 3, RADIUS * 4, {
+    addColumnAgentGroup(agentData, 12, RADIUS * 4, {
             x: -25,
             z: 0
         }, {
@@ -300,7 +315,7 @@ function init() {
         0.6, "X", );
 
 
-    addColumnAgentGroup(agentData, 8, RADIUS * 4, {
+    addColumnAgentGroup(agentData, 12, RADIUS * 4, {
             x: 0,
             z: -25.
         }, {
@@ -309,7 +324,7 @@ function init() {
         },
         0.6, "Z", );
 
-    addColumnAgentGroup(agentData, 3, RADIUS * 4, {
+    addColumnAgentGroup(agentData, 12, RADIUS * 4, {
             x: RADIUS * 3,
             z: 25.
         }, {
@@ -322,7 +337,8 @@ function init() {
     let agnetGeometry, agentMaterial, agent;
 
     agentData.forEach(function(item) {
-        agnetGeometry = new THREE.CylinderGeometry(item.radius, 1, 4, 16);
+        console.log(item.radius);
+        agnetGeometry = new THREE.CylinderGeometry(item.radius/2, 0.5, 2, 16);
         agentMaterial = new THREE.MeshLambertMaterial({
             color: 0x00ff00
         }) ;
@@ -444,6 +460,38 @@ function setVoxelPosition(sdfCell)
     mesh.setMatrixAt(countId, dummy.matrix)
 }
 
+function createGUI() {
+    const Bstates = ['Random', 'None']; 
+    const Astates = ['Random', 'None']; 
+    const cameras = ['Top View', 'FPS'];
+    gui = new GUI();
+    const BstatesFolder = gui.addFolder('BStates');
+    const AstatesFolder = gui.addFolder('AStates');
+    const camerasFolder = gui.addFolder('Cameras');
+    const BclipCtrl = BstatesFolder.add(api, 'Blockstate').options(Bstates);
+    const AclipCtrl = AstatesFolder.add(api, 'Agentstate').options(Astates);
+    const cameraCtrl = camerasFolder.add(api, 'camera').options(cameras);
+    cameraCtrl.onChange(function() {
+        if (api.camera == "FPS" && fpsCamera != undefined) {
+            /*  TODO add code here 
+            */
+            fpsCamera.add(camera);
+            activeCamera = fpsCamera;
+        } else {
+            activeCamera = camera;
+        }
+    });
+    BclipCtrl.onChange(function() {
+        switchNoise(api.state);
+    });
+    AclipCtrl.onChange(function() {
+        switchNoise(api.state);
+    });
+
+    BstatesFolder.open();
+    AstatesFolder.open();
+}
+
 function constructInstancedMeshes()
 {
     let materialsCount ={};
@@ -529,15 +577,22 @@ function calculateSDFGradiant(x,z)
     let center = getCell(x,z);
     if(center!=undefined)
     {
-        left = getSDFNeighbourLeft(x,z);
-        right = getSDFNeighbourRight(x,z);
-        up = getSDFNeighbourTop(x,z);
-        down = getSDFNeighbourBottom(x,z);
 
-        Math.abs(left.+right+up+down)
+        //Edited the this part 
+        let left = getSDFNeighbourLeft(x,z);
+        let right = getSDFNeighbourRight(x,z);
+        let up = getSDFNeighbourTop(x,z);
+        let down = getSDFNeighbourBottom(x,z);
+
+        //Math.abs(left + right + up + down);
         
-            // TODO work in progress
-            //center.grad = {x: gradx z: gradz}
+        let gradx = (left - right)/( C_CELL_DIM * 2);
+        let grady = (up - down) /(C_CELL_DIM * 2);
+        //let gradx = (getSDFNeighbourLeft - getSDFNeighbourRight) / C_CELL_DIM; 
+        //let grady = (getSDFNeighbourTop - getSDFNeighbourBottom) / C_CELL_DIM;
+
+        // TODO work in progress
+        center.grad = {x: gradx, z: grady}
 
     }
 }
