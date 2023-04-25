@@ -6,15 +6,10 @@ import {
 
 import Stats from 'three/addons/libs/stats.module.js';
 
-///
-import {
-    GUI
-} from 'three/addons/libs/lil-gui.module.min.js';
-
 let renderer, scene, camera;
 let world = {
-    x: 100,
-    z: 100
+    x: 80,
+    z: 80
 };
 let agentData = [];
 let pickableObjects = [];
@@ -30,34 +25,22 @@ wallsData.push({
     });
 
 wallsData.push({
-        "x": 0.0,
+        "x": 25.0,
         "y": 0,
-        "z": 0.0,
+        "z": 25.0,
         "dx":5.0,
         "dy":5.0,
         "dz":5.0,
     });
 
-///
-let gui, previousAction = 'Random',
-    activeAction;
-const api = {
-    Blockstate: 'Block',
-    Agentstate: 'Agent',
-    camera: 'Camera'
-};
-let activeCamera;
-
-let C_QUANTIZATION = 10;
+let C_QUANTIZATION = 5;
 let selected = null;
 let mouse = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 let grid;
 let sdfCells = [];
-let sdfCellsMap = {};
 let topTexture;
 const RADIUS = 1;
-const C_CELL_DIM = 0.25;
 const blueAgentMaterial = new THREE.MeshLambertMaterial({
     color: 0x0000ff
 });
@@ -136,7 +119,7 @@ function init() {
     topTexture.repeat.set(3, 3);
     //topTexture.rotation = -Math.PI / 2;
     // grid
-    const geometry = new THREE.PlaneGeometry(world.x, world.z, 30, 30);
+    const geometry = new THREE.PlaneGeometry(world.x, world.z, 10, 10);
     const material = new THREE.MeshPhongMaterial({
         map: texture,
         //side: THREE.DoubleSide,
@@ -148,7 +131,7 @@ function init() {
     scene.add(grid);
 
     createSDFColors(C_QUANTIZATION);
-    addGridCells(world);
+    addGridCells(world, 2.5);
     
 
     // quantization value between 0 and 1
@@ -163,51 +146,38 @@ function init() {
             sdfMaterials[sdfMaterialQuant] = sdfMaterial; 
             sdfMaterialQuant+=quantization;
         }
+
     }
 
-    createGUI();
 
-    function addGridCells(world)
+
+    function addGridCells(world, cellDim)
     {
         let start_x = -world.x/2;
         let start_z = -world.z/2;
         let start_y = 0.0;
         let cur_z;
-        let voxelMaterial;
+        let voxelGeom, voxelMaterial, voxel;
         let cur_x = start_x;
-        let xIndex,zIndex;
-        xIndex=0;
         while(cur_x<world.x/2)
         {
-            zIndex=0;
             cur_z = start_z;
             while(cur_z<world.z/2)
             {
-                voxelMaterial = getSDFMaterialKey(Math.random() *100 ) ;
-                let sdfCell = {"material":voxelMaterial,"x":cur_x, "y": start_y,  "z":cur_z , 
-                               "xIndex":xIndex, "zIndex":zIndex};
-                sdfCells.push(sdfCell);
-                sdfCellsMap[[xIndex,zIndex]] = sdfCell;
-                cur_z+=C_CELL_DIM;
-                zIndex+=1;
+                voxelGeom = new THREE.BoxGeometry(cellDim*0.98, 1, cellDim*0.98);
+                voxelMaterial = getSDFMaterial(Math.random() *100 ) ;
+                voxel = new THREE.Mesh(voxelGeom, voxelMaterial);
+                voxel.receiveShadow = true;
+                scene.add(voxel);
+                voxel.position.x = cur_x; 
+                voxel.position.y = start_y; 
+                voxel.position.z = cur_z;
+                //voxel.userData.sdfColor = 1;
+                sdfCells.push( {"voxel":voxel,"x":cur_x, "z":cur_z  } );
+                cur_z+=cellDim;
             }
-            xIndex+=1;
-           cur_x+=C_CELL_DIM; 
+           cur_x+=cellDim; 
         }
-        world.sdfCellsMap=sdfCellsMap;
-        world.getSDFCell = function (x,z) {
-            let res;
-            if(x>=-world.x/2 && x<=world.x/2 && z>=-world.z/2 && z<=world.z/2)
-            {
-                //adjust starting point 
-                let xIndex = Math.floor( (x+world.x/2)/C_CELL_DIM);
-                let zIndex = Math.floor( (z+world.z/2)/C_CELL_DIM);
-                res = world.sdfCellsMap[[xIndex,zIndex]];
-            }
-            return res;
-        };
-        
-
     }
 
     function addColumnAgentGroup(agentData, numAgents, spacing,
@@ -260,7 +230,7 @@ function init() {
     goalY = 20;
     world.distanceConstraints = [];
 
-    addColumnAgentGroup(agentData, 13, RADIUS * 4, {
+    addColumnAgentGroup(agentData, 3, RADIUS * 4, {
             x: 30,
             z: 25
         }, {
@@ -269,7 +239,7 @@ function init() {
         },
         0.6, "X", );
 
-    addColumnAgentGroup(agentData, 13, RADIUS * 4, {
+    addColumnAgentGroup(agentData, 4, RADIUS * 4, {
             x: 25,
             z: 20
         }, {
@@ -278,7 +248,7 @@ function init() {
         },
         0.7, "X", );
 
-    addColumnAgentGroup(agentData, 13, RADIUS * 4, {
+    addColumnAgentGroup(agentData, 4, RADIUS * 4, {
             x: 25,
             z: 10
         }, {
@@ -287,7 +257,7 @@ function init() {
         },
         0.8, "X", );
 
-    addColumnAgentGroup(agentData, 13, RADIUS * 4, {
+    addColumnAgentGroup(agentData, 4, RADIUS * 4, {
             x: 25,
             z: 6
         }, {
@@ -296,7 +266,7 @@ function init() {
         },
         0.8, "X", );
 
-    addColumnAgentGroup(agentData, 12, RADIUS * 4, {
+    addColumnAgentGroup(agentData, 3, RADIUS * 4, {
             x: -25,
             z: 12
         }, {
@@ -305,7 +275,7 @@ function init() {
         },
         0.6, "X", );
 
-    addColumnAgentGroup(agentData, 12, RADIUS * 4, {
+    addColumnAgentGroup(agentData, 3, RADIUS * 4, {
             x: -25,
             z: 0
         }, {
@@ -315,7 +285,7 @@ function init() {
         0.6, "X", );
 
 
-    addColumnAgentGroup(agentData, 12, RADIUS * 4, {
+    addColumnAgentGroup(agentData, 8, RADIUS * 4, {
             x: 0,
             z: -25.
         }, {
@@ -324,7 +294,7 @@ function init() {
         },
         0.6, "Z", );
 
-    addColumnAgentGroup(agentData, 12, RADIUS * 4, {
+    addColumnAgentGroup(agentData, 3, RADIUS * 4, {
             x: RADIUS * 3,
             z: 25.
         }, {
@@ -335,10 +305,10 @@ function init() {
 
 
     let agnetGeometry, agentMaterial, agent;
+    let spotLight, spotLightTarget;
 
     agentData.forEach(function(item) {
-        console.log(item.radius);
-        agnetGeometry = new THREE.CylinderGeometry(item.radius/2, 0.5, 2, 16);
+        agnetGeometry = new THREE.CylinderGeometry(item.radius, 1, 4, 16);
         agentMaterial = new THREE.MeshLambertMaterial({
             color: 0x00ff00
         }) ;
@@ -421,19 +391,6 @@ function mouseDown(event) {
 }
 
 //integers between 1...100
-function getSDFMaterialKey(value)
-{
-    const materialKey = Math.trunc(Math.floor(value/C_QUANTIZATION) * C_QUANTIZATION);
-    let res =  sdfMaterials[materialKey];
-    if(res==undefined)
-    {
-        console.log(materialKey, sdfMaterials);
-        return undefined;
-    }
-    return materialKey;
-}
-
-//integers between 1...100
 function getSDFMaterial(value)
 {
     const materialKey = Math.trunc(Math.floor(value/C_QUANTIZATION) * C_QUANTIZATION);
@@ -445,169 +402,11 @@ function getSDFMaterial(value)
     return res;
 }
 
-
-
-function setVoxelPosition(sdfCell)
-{
-    let x = sdfCell.x;
-    let y = sdfCell.y;
-    let z = sdfCell.z; 
-    let mesh = sdfCell.voxel;
-    let countId = sdfCell._id; 
-    const dummy = new THREE.Object3D()
-    dummy.position.set(x,y,z);
-    dummy.updateMatrix()
-    mesh.setMatrixAt(countId, dummy.matrix)
-}
-
-function createGUI() {
-    const Bstates = ['Random', 'None']; 
-    const Astates = ['Random', 'None']; 
-    const cameras = ['Top View', 'FPS'];
-    gui = new GUI();
-    const BstatesFolder = gui.addFolder('BStates');
-    const AstatesFolder = gui.addFolder('AStates');
-    const camerasFolder = gui.addFolder('Cameras');
-    const BclipCtrl = BstatesFolder.add(api, 'Blockstate').options(Bstates);
-    const AclipCtrl = AstatesFolder.add(api, 'Agentstate').options(Astates);
-    const cameraCtrl = camerasFolder.add(api, 'camera').options(cameras);
-    cameraCtrl.onChange(function() {
-        if (api.camera == "FPS" && fpsCamera != undefined) {
-            /*  TODO add code here 
-            */
-            fpsCamera.add(camera);
-            activeCamera = fpsCamera;
-        } else {
-            activeCamera = camera;
-        }
-    });
-    BclipCtrl.onChange(function() {
-        switchNoise(api.state);
-    });
-    AclipCtrl.onChange(function() {
-        switchNoise(api.state);
-    });
-
-    BstatesFolder.open();
-    AstatesFolder.open();
-}
-
-function constructInstancedMeshes()
-{
-    let materialsCount ={};
-    let totalNumCells=0;
-
-    sdfCells.forEach(function(cell) {    
-        totalNumCells+=1;
-        if(cell.material in materialsCount)
-        {
-            cell._id = materialsCount[cell.material]; 
-            materialsCount[cell.material]=materialsCount[cell.material]+1;
-        }
-        else
-        {
-           cell._id = 0;
-           materialsCount[cell.material] = 1; 
-        }
-    });   
-    let count, material, mesh, instancedMeshes = {};
-    let geometry = new THREE.BoxGeometry(C_CELL_DIM*0.98, 1, C_CELL_DIM*0.98);
-    var keys = Object.keys(materialsCount);
-    for(let i in keys){
-        count = materialsCount[keys[i]]
-        material = getSDFMaterial(keys[i]);
-        mesh = new THREE.InstancedMesh(geometry, material, count)
-        mesh.receiveShadow = true;
-        scene.add(mesh) 
-        instancedMeshes[ keys[i] ] = mesh;
-    }
-
-    sdfCells.forEach(function(cell) {
-        const dummy = new THREE.Object3D()
-        dummy.position.set(cell.x,cell.y, cell.z);
-        dummy.updateMatrix()
-        let mesh = instancedMeshes[cell.material];
-        mesh.setMatrixAt(cell._id, dummy.matrix) 
-    });
-}
-
-
-function getCell(x,z)
-{
-    let cell =  sdfCellsMap[[x,z]]
-    return cell;    
-}
-
-function getSDFNeighbourBottom(x,z)
-{
-    let res = getCell(x,z-1);
-    if(res==undefined){
-        res = getCell(x,z); 
-    }
-    return res;
-}
-function getSDFNeighbourTop(x,z)
-{
-    let res = getCell(x,z+1);
-    if(res==undefined){
-        res = getCell(x,z); 
-    }
-    return res;
-}
-
-function getSDFNeighbourLeft(x,z)
-{
-    let res = getCell(x-1,z);
-    if(res==undefined){
-        res = getCell(x,z); 
-    }
-    return res;
-}
-function getSDFNeighbourRight(x,z)
-{
-    let res = getCell(x+1,z);
-    if(res==undefined){
-        res = getCell(x,z); 
-    }
-    return res;
-}
-
-function calculateSDFGradiant(x,z)
-{
-    let center = getCell(x,z);
-    if(center!=undefined)
-    {
-
-        //Edited the this part 
-        let left = getSDFNeighbourLeft(x,z);
-        let right = getSDFNeighbourRight(x,z);
-        let up = getSDFNeighbourTop(x,z);
-        let down = getSDFNeighbourBottom(x,z);
-
-        //Math.abs(left + right + up + down);
-        
-        let gradx = (left - right)/( C_CELL_DIM * 2);
-        let grady = (up - down) /(C_CELL_DIM * 2);
-        //let gradx = (getSDFNeighbourLeft - getSDFNeighbourRight) / C_CELL_DIM; 
-        //let grady = (getSDFNeighbourTop - getSDFNeighbourBottom) / C_CELL_DIM;
-
-        // TODO work in progress
-        center.grad = {x: gradx, z: grady}
-
-    }
-}
-
-
-
-function calculateCellSDFGradiants() 
-{
-    sdfCells.forEach(function(cell) {
-        calculateSDFGradiant(cell.xIndex,cell.zIndex);
-     });    
-}
-
 function updateSDFMaterial()
 {
+    //How to update the distance field? 
+
+
     // iterate over all wallsData
     let i =0,j, dist,curDist;
     while(i<sdfCells.length)
@@ -625,6 +424,12 @@ function updateSDFMaterial()
             }
             j+=1;
         }
+        agentData.forEach(function (item){
+            curDist = PHY.distance(sdfCells[i].x,  sdfCells[i].z,item.x,item.z)
+            if(curDist<dist)
+                dist = curDist
+
+        })
         sdfCells[i].dist = dist;
         i+=1;
     }
@@ -639,27 +444,31 @@ function updateSDFMaterial()
         i+=1;
     }
 
-    i=0;
+    i=1;
     while(i<sdfCells.length)
     {
-        // actual distance field value 
-        sdfCells[i].sdf = sdfCells[i].dist;
-        // sdf value for visualization
         sdfCells[i].dist= 100 * (sdfCells[i].dist-minSDFvalue)/
                           (maxSDFValue - minSDFvalue)
         i+=1;
     } 
+    // calcualte a SDF for each tile sdfCells 
+
+    // noramlize the SDF value to 0....100, lets call that X
+
+    // put value X below in getSDFMatrial(...)
     if(sdfCells!=undefined)
     {
         sdfCells.forEach(function(cell) {
-            let materialKey  = getSDFMaterialKey(cell.dist ) ;
-            if(materialKey!=undefined){            
-                cell.material = materialKey;
-            }  
+            //0...100 | 0 you are inside the obstacle 
+            //          100 your far away 
+            let mat  = getSDFMaterial(cell.dist ) ;
+            if(mat!=undefined){
+            
+                cell.voxel.material = mat;
+            }
          });
+
     }
-    constructInstancedMeshes();
-    calculateCellSDFGradiants();
 }
 
 
@@ -679,6 +488,7 @@ function animate() {
         if(selected!=null&& member.index == selected)
         {
             member.agent.material = blueAgentMaterial;
+            updateSDFMaterial();
             selected = null;
         }
 
@@ -687,6 +497,4 @@ function animate() {
     stats.update()
 };
 
-
-updateSDFMaterial();
 animate();
