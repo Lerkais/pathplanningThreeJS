@@ -21,9 +21,9 @@ let pickableObjects = [];
 let wallsData = [];
 let sdfMaterials = {}
 wallsData.push({
-        "x": -15.0,
+        "x": -30,
         "y": 0,
-        "z": -15.0,
+        "z": -20,
         "dx":5.0,
         "dy":15.0,
         "dz":20.0,
@@ -38,6 +38,15 @@ wallsData.push({
         "dz":5.0,
     });
 
+wallsData.push({
+        "x": 30,
+        "y": 0,
+        "z": 25,
+        "dx":5.0,
+        "dy":5.0,
+        "dz":5.0,
+    });
+
 ///
 let gui, previousAction = 'Random',
     activeAction;
@@ -47,6 +56,7 @@ const api = {
     camera: 'Camera'
 };
 let activeCamera;
+let clicked = false;    //Added
 
 let C_QUANTIZATION = 10;
 let selected = null;
@@ -56,6 +66,7 @@ let grid;
 let sdfCells = [];
 let sdfCellsMap = {};
 let topTexture;
+let controls;
 const RADIUS = 1;
 const C_CELL_DIM = 0.25;
 const blueAgentMaterial = new THREE.MeshLambertMaterial({
@@ -69,10 +80,8 @@ const stats = new Stats();
 document.body.appendChild(stats.dom)   
 
 
-
 init();
 render();
-
 
 function init() {
     // renderer
@@ -92,7 +101,7 @@ function init() {
     camera.rotation.x = -0.46;
 
     // controls
-    const controls = new OrbitControls(camera, renderer.domElement);
+    controls = new OrbitControls(camera, renderer.domElement);
     controls.addEventListener('change', render);
     controls.enableZoom = false;
     controls.enablePan = false;
@@ -146,6 +155,7 @@ function init() {
     grid.rotation.y = -Math.PI / 2;
     grid.rotation.x = -Math.PI / 2;
     scene.add(grid);
+    pickableObjects.push(grid);  /////Added
 
     createSDFColors(C_QUANTIZATION);
     addGridCells(world);
@@ -210,6 +220,7 @@ function init() {
 
     }
 
+
     function addColumnAgentGroup(agentData, numAgents, spacing,
         startPos, goalPos,
         velocityMagnitude, direction) {
@@ -264,17 +275,17 @@ function init() {
             x: 30,
             z: 25
         }, {
-            x: -25,
-            z: 25
+            x: -world.x/2,
+            z: -world.z/2
         },
         0.6, "X", );
 
-    addColumnAgentGroup(agentData, 13, RADIUS * 4, {
+    addColumnAgentGroup(agentData, 12, RADIUS * 4, {
             x: 25,
             z: 20
         }, {
-            x: -25,
-            z: 20
+            x: -world.x/2,
+            z: -world.z/2
         },
         0.7, "X", );
 
@@ -282,26 +293,26 @@ function init() {
             x: 25,
             z: 10
         }, {
-            x: -25,
-            z: 10
-        },
-        0.8, "X", );
-
-    addColumnAgentGroup(agentData, 13, RADIUS * 4, {
-            x: 25,
-            z: 6
-        }, {
-            x: -25,
-            z: 6
+            x: -world.x/2,
+            z: world.z/2
         },
         0.8, "X", );
 
     addColumnAgentGroup(agentData, 12, RADIUS * 4, {
+            x: 25,
+            z: 6
+        }, {
+            x: -world.x/2,
+            z: world.z/2
+        },
+        0.8, "X", );
+
+    addColumnAgentGroup(agentData, 13, RADIUS * 4, {
             x: -25,
             z: 12
         }, {
-            x: 30,
-            z: 25
+            x: world.x/2,
+            z: -world.z/2
         },
         0.6, "X", );
 
@@ -309,18 +320,18 @@ function init() {
             x: -25,
             z: 0
         }, {
-            x: 30,
-            z: 33
+            x: world.x/2,
+            z: -world.z/2
         },
         0.6, "X", );
 
 
-    addColumnAgentGroup(agentData, 12, RADIUS * 4, {
+    addColumnAgentGroup(agentData, 13, RADIUS * 4, {
             x: 0,
             z: -25.
         }, {
-            x: 0,
-            z: 30,
+            x: world.x/2,
+            z: world.z/2
         },
         0.6, "Z", );
 
@@ -328,8 +339,8 @@ function init() {
             x: RADIUS * 3,
             z: 25.
         }, {
-            x: RADIUS * 3,
-            z: -25,
+            x: world.x/2,
+            z: world.z/2
         },
         0.6, "Z", );
 
@@ -337,7 +348,6 @@ function init() {
     let agnetGeometry, agentMaterial, agent;
 
     agentData.forEach(function(item) {
-        console.log(item.radius);
         agnetGeometry = new THREE.CylinderGeometry(item.radius/2, 0.5, 2, 16);
         agentMaterial = new THREE.MeshLambertMaterial({
             color: 0x00ff00
@@ -409,6 +419,7 @@ function mouseMove(event) {
 
 
 function mouseDown(event) {
+    event.preventDefault();
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
@@ -417,7 +428,8 @@ function mouseDown(event) {
     for (var i = 0; i < intersects.length; i++) {
         selected = intersects[i].object.userData.index;
         break;
-    }  
+    } 
+    clicked = true; 
 }
 
 //integers between 1...100
@@ -597,8 +609,6 @@ function calculateSDFGradiant(x,z)
     }
 }
 
-
-
 function calculateCellSDFGradiants() 
 {
     sdfCells.forEach(function(cell) {
@@ -663,6 +673,10 @@ function updateSDFMaterial()
 }
 
 
+
+
+
+
 function render() {
     renderer.render(scene, camera);
 }
@@ -683,6 +697,25 @@ function animate() {
         }
 
     });
+
+    controls.update();
+
+    if(clicked){        //Added
+        raycaster.setFromCamera(mouse, camera);
+        var intersects = raycaster.intersectObjects(pickableObjects, false);
+        console.log(intersects);
+        for (var i = 0; i < intersects.length; i++) {
+            agentData.forEach(function(member) {
+                    member.goal_x = intersects[i].point.x;
+                    member.goal_z = intersects[i].point.z;
+            });
+            break;
+        }
+        clicked = false;
+    }
+
+    //updatePositions();
+
     renderer.render(scene, camera);
     stats.update()
 };
