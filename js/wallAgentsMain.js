@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import * as PHY from 'simplePhysics';
+import * as PATHER from './pathPlanner.js'
 import {
     OrbitControls
 } from "three/addons/controls/OrbitControls.js";

@@ -1,24 +1,24 @@
-function gridedPathToGoal(startPos,goalPos,grid){ //x and z values should be grid relative not world relative
+export function gridedPathToGoal(startPos,goalPos,grid){ //x and z values should be grid relative not world relative
     const path = aStar(startPos,goalPos,grid);
     
     return path; //Returns list of pos(s) that each of a .x and .z value
 }
 
-function isWalkable(pos,grid){
+export function isWalkable(pos,grid){
     return (grid[[pos.x,pos.z]].sdf > 0) && (isValidPos(pos,grid)) && (!grid[[pos.x,pos.z]].hasAgent);
 }
 
-function isValidPos(pos,grid){
+export function isValidPos(pos,grid){
     return grid[[pos.x,pos.z]] != null;
 }
 
-function manhattanDistance(pos1,pos2){
+export function manhattanDistance(pos1,pos2){
     const dx = Math.abs(pos1.x - pos2.x);
     const dz = Math.abs(pos1.z - pos2.z);
     return dx + dz;
 }
 
-function getNeighbors(pos,grid){
+export function getNeighbors(pos,grid){
     const neighbors = [];
     for(const [dx,dz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
         const neighborPos = {x: pos.x + dx, z: pos.z + dz}
