@@ -8,10 +8,17 @@ import Stats from 'three/addons/libs/stats.module.js';
 
 let renderer, scene, camera;
 let world = {
+<<<<<<< Updated upstream
     x: 80,
     z: 80,
     "cellDim": 1,
     "sdfCount": 30,
+=======
+    x: 50,
+    z: 40,
+    "C_CELL_DIM": .5,
+    "SDF_UPDATE_RATE": 30
+>>>>>>> Stashed changes
 };
 let agentData = [];
 let pickableObjects = [];
@@ -22,12 +29,11 @@ wallsData.push({
         "x": -15.0,
         "y": 0,
         "z": -15.0,
-        "dx":5.0,
-        "dy":15.0,
-        "dz":20.0,
+        "r":5.0,
     });
 
 wallsData.push({
+<<<<<<< Updated upstream
         "x": 25.0,
         "y": 0,
         "z": 25.0,
@@ -37,13 +43,43 @@ wallsData.push({
     });
 
 let C_QUANTIZATION = 5;
+=======
+        "x": 20.0,
+        "y": 0,
+        "z": 0.0,
+        "r":5.0,
+    });
+
+///
+let gui, previousAction = 'Random',
+    activeAction;
+const api = {
+    Blockstate: 'Block',
+    Agentstate: 'Agent',
+    camera: 'Camera'
+};
+let activeCamera;
+
+let sdfCount = world.SDF_UPDATE_RATE;
+let agentCount = 0;
+let C_QUANTIZATION = 1;
+>>>>>>> Stashed changes
 let selected = null;
 let mouse = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 let grid;
 let sdfCells = [];
+<<<<<<< Updated upstream
 let topTexture;
 const RADIUS = 1;
+=======
+let sdfCellsMap = {};
+
+
+let topTexture;
+const RADIUS = 1;
+const C_CELL_DIM = world.C_CELL_DIM; // TODO: DON'T CHANGE WIP
+>>>>>>> Stashed changes
 const blueAgentMaterial = new THREE.MeshLambertMaterial({
     color: 0x0000ff
 });
@@ -122,7 +158,11 @@ function init() {
     topTexture.repeat.set(3, 3);
     //topTexture.rotation = -Math.PI / 2;
     // grid
+<<<<<<< Updated upstream
     const geometry = new THREE.PlaneGeometry(world.x, world.z, 10, 10);
+=======
+    const geometry = new THREE.PlaneGeometry(world.z, world.x, 30, 30);
+>>>>>>> Stashed changes
     const material = new THREE.MeshPhongMaterial({
         map: texture,
         //side: THREE.DoubleSide,
@@ -167,6 +207,7 @@ function init() {
             cur_z = start_z;
             while(cur_z<world.z/2)
             {
+<<<<<<< Updated upstream
                 voxelGeom = new THREE.BoxGeometry(cellDim*0.98, 1, cellDim*0.98);
                 voxelMaterial = getSDFMaterial(Math.random() *100 ) ;
                 voxel = new THREE.Mesh(voxelGeom, voxelMaterial);
@@ -181,6 +222,33 @@ function init() {
             }
            cur_x+=cellDim; 
         }
+=======
+                voxelMaterial = getSDFMaterialKey(Math.random() *100 ) ;
+                let sdfCell = {"material":voxelMaterial,"x":cur_x, "y": start_y,  "z":cur_z ,
+                               "xIndex":xIndex, "zIndex":zIndex};
+                sdfCells.push(sdfCell);
+                sdfCellsMap[[xIndex,zIndex]] = sdfCell;
+                cur_z+=C_CELL_DIM;
+                zIndex+=1;
+            }
+            xIndex+=1;
+           cur_x+=C_CELL_DIM;
+        }
+        world.sdfCellsMap=sdfCellsMap;
+        world.getSDFCell = function (x,z) {
+            let res;
+            if(x>=-world.x/2 && x<=world.x/2 && z>=-world.z/2 && z<=world.z/2)
+            {
+                //adjust starting point
+                let xIndex = Math.floor( (x+world.x/2)/C_CELL_DIM);
+                let zIndex = Math.floor( (z+world.z/2)/C_CELL_DIM);
+                res = world.sdfCellsMap[[xIndex,zIndex]];
+            }
+            return res;
+        };
+        
+
+>>>>>>> Stashed changes
     }
 
     function addColumnAgentGroup(agentData, numAgents, spacing,
@@ -330,7 +398,7 @@ function init() {
 
     let wallGeometry, wall, wallMaterial;
     wallsData.forEach(function (item) {
-        wallGeometry = new THREE.SphereGeometry(item.dx, 16, 16);
+        wallGeometry = new THREE.SphereGeometry(item.r);
         wallMaterial = new THREE.MeshLambertMaterial({
             color: 0x00ff00
         }) ;
@@ -405,38 +473,230 @@ function getSDFMaterial(value)
     return res;
 }
 
+<<<<<<< Updated upstream
+=======
+
+
+function setVoxelPosition(sdfCell)
+{
+    let x = sdfCell.x;
+    let y = sdfCell.y;
+    let z = sdfCell.z; 
+    let mesh = sdfCell.voxel;
+    let countId = sdfCell._id; 
+    const dummy = new THREE.Object3D()
+    dummy.position.set(x,y,z);
+    dummy.updateMatrix()
+    mesh.setMatrixAt(countId, dummy.matrix)
+}
+
+function createGUI() {
+    const Bstates = ['Random', 'None']; 
+    const Astates = ['Random', 'None']; 
+    const cameras = ['Top View', 'FPS'];
+    gui = new GUI();
+    const BstatesFolder = gui.addFolder('BStates');
+    const AstatesFolder = gui.addFolder('AStates');
+    const camerasFolder = gui.addFolder('Cameras');
+    const BclipCtrl = BstatesFolder.add(api, 'Blockstate').options(Bstates);
+    const AclipCtrl = AstatesFolder.add(api, 'Agentstate').options(Astates);
+    const cameraCtrl = camerasFolder.add(api, 'camera').options(cameras);
+    cameraCtrl.onChange(function() {
+        if (api.camera == "FPS" && fpsCamera != undefined) {
+            /*  TODO add code here 
+            */
+            fpsCamera.add(camera);
+            activeCamera = fpsCamera;
+        } else {
+            activeCamera = camera;
+        }
+    });
+    BclipCtrl.onChange(function() {
+        switchNoise(api.state);
+    });
+    AclipCtrl.onChange(function() {
+        switchNoise(api.state);
+    });
+
+    BstatesFolder.open();
+    AstatesFolder.open();
+}
+
+function constructInstancedMeshes()
+{
+    let materialsCount ={};
+    let totalNumCells=0;
+
+    sdfCells.forEach(function(cell) {    
+        totalNumCells+=1;
+        if(cell.material in materialsCount)
+        {
+            cell._id = materialsCount[cell.material];
+            materialsCount[cell.material]=materialsCount[cell.material]+1;
+        }
+        else
+        {
+           cell._id = 0;
+           materialsCount[cell.material] = 1; 
+        }
+
+
+    });   
+    let count, material, mesh, instancedMeshes = {};
+    let geometry = new THREE.BoxGeometry(C_CELL_DIM*0.98, 1, C_CELL_DIM*0.98);
+    var keys = Object.keys(materialsCount);
+    for(let i in keys){
+        count = materialsCount[keys[i]]
+        material = getSDFMaterial(keys[i]);
+        mesh = new THREE.InstancedMesh(geometry, material, count)
+        mesh.receiveShadow = true;
+        scene.add(mesh) 
+        instancedMeshes[ keys[i] ] = mesh;
+    }
+
+    sdfCells.forEach(function(cell) {
+        const dummy = new THREE.Object3D()
+        dummy.position.set(cell.x,cell.y, cell.z);
+        dummy.updateMatrix()
+        let mesh = instancedMeshes[cell.material];
+        mesh.setMatrixAt(cell._id, dummy.matrix) 
+    });
+}
+
+
+function getCell(x,z)
+{
+    let cell =  sdfCellsMap[[x,z]]
+    return cell;    
+}
+
+function getSDFNeighbourBottom(x,z)
+{
+    let res = getCell(x,z-1);
+    if(res==undefined){
+        res = getCell(x,z); 
+    }
+    return res;
+}
+function getSDFNeighbourTop(x,z)
+{
+    let res = getCell(x,z+1);
+    if(res==undefined){
+        res = getCell(x,z); 
+    }
+    return res;
+}
+
+function getSDFNeighbourLeft(x,z)
+{
+    let res = getCell(x-1,z);
+    if(res==undefined){
+        res = getCell(x,z); 
+    }
+    return res;
+}
+function getSDFNeighbourRight(x,z)
+{
+    let res = getCell(x+1,z);
+    if(res==undefined){
+        res = getCell(x,z); 
+    }
+    return res;
+}
+
+function calculateSDFGradiant(x,z)
+{
+    let center = getCell(x,z);
+    if(center!=undefined)
+    {
+
+        //Edited the this part 
+        let left = getSDFNeighbourLeft(x,z);
+        let right = getSDFNeighbourRight(x,z);
+        let up = getSDFNeighbourTop(x,z);
+        let down = getSDFNeighbourBottom(x,z);
+
+        //Math.abs(left + right + up + down);
+        
+        let gradx = (left - right)/( C_CELL_DIM * 2);
+        let grady = (up - down) /(C_CELL_DIM * 2);
+        //let gradx = (getSDFNeighbourLeft - getSDFNeighbourRight) / C_CELL_DIM; 
+        //let grady = (getSDFNeighbourTop - getSDFNeighbourBottom) / C_CELL_DIM;
+
+        center.grad = {x: gradx, z: grady}
+
+    }
+}
+
+
+
+function calculateCellSDFGradiants() 
+{
+    sdfCells.forEach(function(cell) {
+        calculateSDFGradiant(cell.xIndex,cell.zIndex);
+     });    
+}
+
+>>>>>>> Stashed changes
 function updateSDFMaterial()
 {
     //How to update the distance field? 
 
 
     // iterate over all wallsData
+<<<<<<< Updated upstream
     let i =0,j, dist,curDist,adist = 9999999;
+=======
+    let i =0,j, dist,curDist,bdist;
+
+
+
+
+>>>>>>> Stashed changes
     while(i<sdfCells.length)
     {
         j=0;
         dist = 6666666;
+<<<<<<< Updated upstream
         adist = 9999999
 
+=======
+        bdist = 9999999;
+        let sdfX = sdfCells[i].x;
+        let sdfZ = sdfCells[i].z;
+>>>>>>> Stashed changes
         while(j<wallsData.length)
         {
-            curDist= PHY.distance(sdfCells[i].x,  sdfCells[i].z, 
-                              wallsData[j].x, wallsData[j].z)
-                     - wallsData[j].dx;            
+            curDist= PHY.distance(sdfCells[i].x,  sdfCells[i].z, wallsData[j].x, wallsData[j].z) - wallsData[j].r;
             if(curDist<dist)
             {
                 dist = curDist;    
             }
             j+=1;
         }
+<<<<<<< Updated upstream
         agentData.forEach(function (item){
             curDist = PHY.distance(sdfCells[i].x,  sdfCells[i].z,item.x,item.z)
             if(curDist<adist)
                 adist = curDist
         })
         sdfCells[i].dist = Math.min(adist,dist);
+=======
+        //TODO ADD AGENTS TO SDF CALCULATIONS
+        agentData.forEach(function (ag){
+            curDist = PHY.distance(sdfX,sdfZ, ag.x,ag.z)-ag.radius;
+            if(curDist<bdist){
+                bdist = curDist;
+            }
+        });
+
+        sdfCells[i].dist = dist;
+        sdfCells[i].bdist = bdist;
+>>>>>>> Stashed changes
         i+=1;
     }
+
+
 
     let minSDFvalue=sdfCells[0].dist;
     let maxSDFValue=sdfCells[0].dist;
@@ -451,8 +711,18 @@ function updateSDFMaterial()
     i=1;
     while(i<sdfCells.length)
     {
+<<<<<<< Updated upstream
         sdfCells[i].dist= 100 * (sdfCells[i].dist-minSDFvalue)/
                           (maxSDFValue - minSDFvalue)
+=======
+        // actual distance field value 
+        sdfCells[i].sdf = sdfCells[i].dist;
+        // sdf value for visualization
+        sdfCells[i].dist = 100 * (Math.min(sdfCells[i].dist,sdfCells[i].bdist))/(maxSDFValue)
+
+        if(sdfCells[i].dist < 0)
+            sdfCells[i].dist = 0
+>>>>>>> Stashed changes
         i+=1;
     } 
     // calcualte a SDF for each tile sdfCells 
@@ -463,15 +733,59 @@ function updateSDFMaterial()
     if(sdfCells!=undefined)
     {
         sdfCells.forEach(function(cell) {
+<<<<<<< Updated upstream
             //0...100 | 0 you are inside the obstacle 
             //          100 your far away 
             let mat  = getSDFMaterial(cell.dist) ;
             if(mat!=undefined){
                 cell.voxel.material = mat;
             }
+=======
+            let materialKey  = getSDFMaterialKey(cell.dist) ;
+            if(materialKey!=undefined){            
+                cell.material = materialKey;
+            }  
+>>>>>>> Stashed changes
          });
 
     }
+<<<<<<< Updated upstream
+=======
+    constructInstancedMeshes();
+    //calculateCellSDFGradiants();
+
+}
+
+function agentSdfField(agent){
+    let i = 0,adist,curDist;
+    while(i<sdfCells.length)
+    {
+        adist = 9999999;
+        let sdfX = sdfCells[i].x;
+        let sdfZ = sdfCells[i].z;
+        //TODO ADD AGENTS TO SDF CALCULATIONS
+        agentData.forEach(function (ag){
+            if(ag != agent){
+                curDist = PHY.distance(sdfX,sdfZ, ag.x,ag.z)-ag.radius;
+                if(curDist<adist)
+                    adist = curDist;
+            }
+        });
+
+        sdfCells[i].adist = adist;
+        i+=1;
+    }
+}
+
+
+function createAgentPathTo(agent,goalX,goalZ){
+    //TODO
+
+}
+
+function agentPathStartup(){
+    //TODO
+>>>>>>> Stashed changes
 }
 
 
@@ -482,6 +796,7 @@ function render() {
 
 function animate() {
     requestAnimationFrame(animate);
+<<<<<<< Updated upstream
     PHY.step(RADIUS, agentData, world,sdfCells)
 
 
@@ -491,6 +806,30 @@ function animate() {
     }
     else
         sdfCounter--;
+=======
+    PHY.step(RADIUS, agentData, world,sdfCellsMap,sdfCells)
+
+    if(sdfCount <= 0)
+    {
+        updateSDFMaterial();
+        sdfCount = world.SDF_UPDATE_RATE
+    }
+    else
+        sdfCount-=1;
+
+
+    //TODO UPDATE PATH FOR AGENTS
+    if(agentCount >= agentData.length){
+        agentCount = 0;
+
+        }
+    else
+        agentCount++;
+    //createAgentPathTo(agentData[agentCount],agentData[agentCount].goalPos);
+
+
+
+>>>>>>> Stashed changes
 
     agentData.forEach(function(member) {
         member.agent.position.x = member.x;
@@ -503,9 +842,17 @@ function animate() {
             selected = null;
         }
 
+
     });
     renderer.render(scene, camera);
     stats.update()
 };
 
+<<<<<<< Updated upstream
+=======
+
+
+updateSDFMaterial();
+agentPathStartup();
+>>>>>>> Stashed changes
 animate();
