@@ -1,3 +1,4 @@
+import * as MOVER from './agentMover.js'
 export function gridedPathToGoal(startPos,goalPos,grid){ //x and z values should be grid relative not world relative
     const path = aStar(startPos,goalPos,grid);
     
@@ -27,6 +28,16 @@ export function getNeighbors(pos,grid){
         }
     }
     return neighbors;
+}
+
+export function updateAllAgentsPaths(agentData,grid,world){
+    agentData.forEach(function (agent){
+        MOVER.updateCurrentCell(agent);
+
+        const pos = { x: agent.gridX, z: agent.gridZ }
+        agent.path = gridedPathToGoal(pos,agent.gridGoal,grid);
+
+    })
 }
 
 function hash(pos) {
@@ -161,6 +172,8 @@ function reconstructPath(current, cameFrom) {
     }
     return path;
   }
+
+
   
 
 let pos1,pos2;
