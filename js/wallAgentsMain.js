@@ -9,10 +9,13 @@ import Stats from 'three/addons/libs/stats.module.js';
 let renderer, scene, camera;
 let world = {
     x: 80,
-    z: 80
+    z: 80,
+    "cellDim": 1,
+    "sdfCount": 30,
 };
 let agentData = [];
 let pickableObjects = [];
+let sdfCounter = 0;
 let wallsData = [];
 let sdfMaterials = {}
 wallsData.push({
@@ -131,7 +134,7 @@ function init() {
     scene.add(grid);
 
     createSDFColors(C_QUANTIZATION);
-    addGridCells(world, 2.5);
+    addGridCells(world, world.cellDim);
     
 
     // quantization value between 0 and 1
@@ -408,11 +411,13 @@ function updateSDFMaterial()
 
 
     // iterate over all wallsData
-    let i =0,j, dist,curDist;
+    let i =0,j, dist,curDist,adist = 9999999;
     while(i<sdfCells.length)
     {
         j=0;
-        dist = 6666666;   
+        dist = 6666666;
+        adist = 9999999
+
         while(j<wallsData.length)
         {
             curDist= PHY.distance(sdfCells[i].x,  sdfCells[i].z, 
@@ -426,11 +431,10 @@ function updateSDFMaterial()
         }
         agentData.forEach(function (item){
             curDist = PHY.distance(sdfCells[i].x,  sdfCells[i].z,item.x,item.z)
-            if(curDist<dist)
-                dist = curDist
-
+            if(curDist<adist)
+                adist = curDist
         })
-        sdfCells[i].dist = dist;
+        sdfCells[i].dist = Math.min(adist,dist);
         i+=1;
     }
 
@@ -461,9 +465,8 @@ function updateSDFMaterial()
         sdfCells.forEach(function(cell) {
             //0...100 | 0 you are inside the obstacle 
             //          100 your far away 
-            let mat  = getSDFMaterial(cell.dist ) ;
+            let mat  = getSDFMaterial(cell.dist) ;
             if(mat!=undefined){
-            
                 cell.voxel.material = mat;
             }
          });
@@ -479,7 +482,16 @@ function render() {
 
 function animate() {
     requestAnimationFrame(animate);
-    PHY.step(RADIUS, agentData, world)
+    PHY.step(RADIUS, agentData, world,sdfCells)
+
+
+    if(sdfCounter <= 0){
+    updateSDFMaterial();
+    sdfCounter = world.sdfCount
+    }
+    else
+        sdfCounter--;
+
     agentData.forEach(function(member) {
         member.agent.position.x = member.x;
         member.agent.position.y = member.y;
@@ -488,7 +500,6 @@ function animate() {
         if(selected!=null&& member.index == selected)
         {
             member.agent.material = blueAgentMaterial;
-            updateSDFMaterial();
             selected = null;
         }
 

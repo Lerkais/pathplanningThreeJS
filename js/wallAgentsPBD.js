@@ -2,7 +2,7 @@ export function distance(x1, y1, x2, y2) {
       return Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
 }
 
-export function step(RADIUS,sceneEntities,world) {
+export function step(RADIUS,sceneEntities,world,sdfCells) {
   const C_TAU_MAX = 20;
 	//double C_MAX_ACCELERATION = cur->getTimeStep() * MAX_ACCEL;
 	const C_MAX_ACCELERATION = 0.01;
@@ -119,6 +119,8 @@ function clamp2D(vx,vy, maxValue) {
            .... do something 
       }
      */
+
+
 
 
   }
