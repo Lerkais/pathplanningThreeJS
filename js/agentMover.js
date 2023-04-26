@@ -1,4 +1,4 @@
-import * as PTHER from './pathPlanner.js'
+import * as PATHER from 'PatherB'
 export function moveAgentOneCell(agent,nextPos,grid){ //Grid relative positions
     if(PTHER.isWalkable(endPos,grid)){
         agent.goal_x = nextPos.x - world.x/2;

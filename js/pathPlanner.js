@@ -1,4 +1,4 @@
-import * as MOVER from './agentMover.js'
+import * as MOVER from 'MoverB'
 export function gridedPathToGoal(startPos,goalPos,grid){ //x and z values should be grid relative not world relative
     const path = aStar(startPos,goalPos,grid);
     
@@ -184,27 +184,4 @@ function reconstructPath(current, cameFrom) {
 
 
   
-
-let pos1,pos2;
-const start = { x: 0, z: 0 };
-const end = { x: 0, z: 9 };
-
-let testSdfMap = {};
-
-for(let i = 0; i < 10; i++){
-    for(let j = 0; j < 10; j++){
-        let sdfCell = {"x":i,"z":j,"hasAgent":false};
-        testSdfMap[[i,j]] = sdfCell;
-        testSdfMap[[i,j]].sdf = (Math.random()-.1)*10;
-        
-    }
-}
-console.log(testSdfMap);
-
-path = gridedPathToGoal(start,end,testSdfMap);
-
-path.forEach(function (item){
-    console.log(item);
-});
-
 

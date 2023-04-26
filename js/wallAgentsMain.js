@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import * as PHY from 'simplePhysics';
-import * as PATHER from './pathPlanner.js'
-import * as MOVER from './agentMover.js'
+import * as PATHER from 'PatherB'
+import * as MOVER from 'MoverB'
 
 import {
     OrbitControls
@@ -697,8 +697,9 @@ function animate() {
     requestAnimationFrame(animate);
     PHY.step(RADIUS, agentData, world)
     agentData.forEach(function(agent){
-        MOVER.moveAgentOneCell(agent, agent.path[0], sdfCellsMap);
-
+        if(agent.path != null || agent.path != []){
+            MOVER.moveAgentOneCell(agent, agent.path[0], sdfCellsMap);
+        }
     });
     MOVER.updateSdfCells(agentData, sdfCellsMap);
     agentData.forEach(function(member) {
