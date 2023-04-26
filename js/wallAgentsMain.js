@@ -1,16 +1,16 @@
 import * as THREE from 'three';
 import * as PHY from 'simplePhysics';
-import * as PATHER from './pathPlanner.js'
+//import * as PATHER from './pathPlanner.js'
 import {
     OrbitControls
 } from "three/addons/controls/OrbitControls.js";
 
 import Stats from 'three/addons/libs/stats.module.js';
 
-///
+/*
 import {
     GUI
-} from 'three/addons/libs/lil-gui.module.min.js';
+} from 'three/addons/libs/lil-gui.module.min.js';*/
 
 let renderer, scene, camera;
 let world = {
@@ -48,7 +48,7 @@ wallsData.push({
         "dz":5.0,
     });
 
-///
+/*
 let gui, previousAction = 'Random',
     activeAction;
 const api = {
@@ -56,11 +56,11 @@ const api = {
     Agentstate: 'Agent',
     camera: 'Camera'
 };
-let activeCamera;
+let activeCamera;*/
 let clicked = false;    //Added
 
 let C_QUANTIZATION = 10;
-let selected = null;
+let selected = null, isWall = false, selectWall = null;
 let mouse = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 let grid;
@@ -69,7 +69,7 @@ let sdfCellsMap = {};
 let topTexture;
 let controls;
 const RADIUS = 1;
-const C_CELL_DIM = 0.25;
+const C_CELL_DIM = 1;
 const blueAgentMaterial = new THREE.MeshLambertMaterial({
     color: 0x0000ff
 });
@@ -176,7 +176,7 @@ function init() {
         }
     }
 
-    createGUI();
+    //createGUI();
 
     function addGridCells(world)
     {
@@ -377,11 +377,12 @@ function init() {
         wall.castShadow = true;
         wall.receiveShadow = true;
         wall.userData = {"index": item.index};
+        wall.userData.type = 'wall';
         scene.add(wall);
         wall.position.x = item.x; 
         wall.position.y = item.y; 
         wall.position.z = item.z; 
-        //pickableObjects.push(wall);
+        pickableObjects.push(wall);
     });
 
     window.addEventListener("resize", onWindowResize);
@@ -398,26 +399,19 @@ function onWindowResize() {
 
 function mouseMove(event) {
     event.preventDefault();
-    if(selected!=null)
+
+    if(selected != null)
     {
         mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
         raycaster.setFromCamera(mouse, camera);    
         var intersects =  raycaster.intersectObject(grid, false);
         for (var i = 0; i < intersects.length; i++) {
-            agentData.forEach(function(member) {
-                if (selected != null && member.index == selected) {
-                    member.goal_x = intersects[i].point.x;
-                    member.goal_z = intersects[i].point.z;
-
-
-                }
-            });
-            break;
-        }   
+            selected.position.set(intersects[i].point.x, 0.1, intersects[i].point.z);
+        } 
+        clicked = true;
     }
 }
-
 
 function mouseDown(event) {
     event.preventDefault();
@@ -425,12 +419,28 @@ function mouseDown(event) {
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
     selected=null;
+    isWall = false; 
     var intersects =  raycaster.intersectObjects(pickableObjects, false);
+
     for (var i = 0; i < intersects.length; i++) {
-        selected = intersects[i].object.userData.index;
-        break;
-    } 
-    clicked = true; 
+        if (intersects[i].object.userData.type === "wall") {
+            selected = intersects[i].object;
+            isWall = true;
+            if(clicked == true){
+                selected = null;
+                clicked = false;
+                
+                updateSDFMaterial(); 
+            }
+            break;
+        }else{
+            agentData.forEach(function(member) {
+                member.goal_x = intersects[i].point.x;
+                member.goal_z = intersects[i].point.z;
+            });          
+            break;
+        }
+    }
 }
 
 //integers between 1...100
@@ -472,7 +482,7 @@ function setVoxelPosition(sdfCell)
     dummy.updateMatrix()
     mesh.setMatrixAt(countId, dummy.matrix)
 }
-
+/*
 function createGUI() {
     const Bstates = ['Random', 'None']; 
     const Astates = ['Random', 'None']; 
@@ -486,8 +496,6 @@ function createGUI() {
     const cameraCtrl = camerasFolder.add(api, 'camera').options(cameras);
     cameraCtrl.onChange(function() {
         if (api.camera == "FPS" && fpsCamera != undefined) {
-            /*  TODO add code here 
-            */
             fpsCamera.add(camera);
             activeCamera = fpsCamera;
         } else {
@@ -503,7 +511,7 @@ function createGUI() {
 
     BstatesFolder.open();
     AstatesFolder.open();
-}
+}*/
 
 function constructInstancedMeshes()
 {
@@ -700,20 +708,6 @@ function animate() {
     });
 
     controls.update();
-
-    if(clicked){        //Added
-        raycaster.setFromCamera(mouse, camera);
-        var intersects = raycaster.intersectObjects(pickableObjects, false);
-        console.log(intersects);
-        for (var i = 0; i < intersects.length; i++) {
-            agentData.forEach(function(member) {
-                    member.goal_x = intersects[i].point.x;
-                    member.goal_z = intersects[i].point.z;
-            });
-            break;
-        }
-        clicked = false;
-    }
 
     //updatePositions();
 
