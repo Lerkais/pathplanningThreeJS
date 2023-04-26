@@ -30,7 +30,7 @@ export function getNeighbors(pos,grid){
     return neighbors;
 }
 
-export function updateAllAgentsPaths(agentData,grid,world){
+export function updateAllAgentsPaths(agentData,grid){
     agentData.forEach(function (agent){
         MOVER.updateCurrentCell(agent);
 
@@ -38,6 +38,15 @@ export function updateAllAgentsPaths(agentData,grid,world){
         agent.path = gridedPathToGoal(pos,agent.gridGoal,grid);
 
     })
+}
+export function updateOneAgentsPaths(agent,grid){
+
+      MOVER.updateCurrentCell(agent);
+
+      const pos = { x: agent.gridX, z: agent.gridZ }
+      agent.path = gridedPathToGoal(pos,agent.gridGoal,grid);
+
+
 }
 
 function hash(pos) {

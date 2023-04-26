@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import * as PHY from 'simplePhysics';
-//import * as PATHER from './pathPlanner.js'
+import * as PATHER from './pathPlanner.js'
+import * as MOVER from './agentMover.js'
+
 import {
     OrbitControls
 } from "three/addons/controls/OrbitControls.js";
@@ -694,6 +696,11 @@ function render() {
 function animate() {
     requestAnimationFrame(animate);
     PHY.step(RADIUS, agentData, world)
+    agentData.forEach(function(agent){
+        MOVER.moveAgentOneCell(agent, agent.path[0], sdfCellsMap);
+
+    });
+    MOVER.updateSdfCells(agentData, sdfCellsMap);
     agentData.forEach(function(member) {
         member.agent.position.x = member.x;
         member.agent.position.y = member.y;
@@ -715,6 +722,10 @@ function animate() {
     stats.update()
 };
 
+agentData.forEach(function(agent){
+    let gridg = { x: agent.goal_x, z: agent.goal_z};
+    agent.gridGoal = gridg; 
 
+});
 updateSDFMaterial();
 animate();

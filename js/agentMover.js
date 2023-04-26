@@ -1,12 +1,14 @@
 import * as PTHER from './pathPlanner.js'
 export function moveAgentOneCell(agent,nextPos,grid){ //Grid relative positions
     if(PTHER.isWalkable(endPos,grid)){
-        agent.goal_x = nextPos.x;
-        agent.goal_z = nextPos.z;
+        agent.goal_x = nextPos.x - world.x/2;
+        agent.goal_z = nextPos.z - world.z/2;
         return true;
     }
-    else
-        return false;
+    else{
+      PTHER.updateOneAgentsPaths(agent, grid);
+      return false;
+    }
 }
 
 export function updateSdfCells(agentData,grid){
