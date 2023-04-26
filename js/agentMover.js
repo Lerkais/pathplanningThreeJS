@@ -11,6 +11,13 @@ export function moveAgentOneCell(agent,nextPos,grid){ //Grid relative positions
     }
 }
 
+export function updateGoalCell(agent,grid,world){
+    updateCurrentCell(agent,grid,world)
+    if(agent.path[0].x == agent.gridX && agent.path[0].z == agent.gridZ){
+      agent.path.pop();
+    }
+}
+
 export function updateSdfCells(agentData,grid){
     grid.forEach(function (cell){
         cell.hasAgent = false;

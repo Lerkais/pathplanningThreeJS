@@ -698,6 +698,7 @@ function animate() {
     PHY.step(RADIUS, agentData, world)
     agentData.forEach(function(agent){
         if(agent.path != null || agent.path != []){
+            MOVER.updateGoalCell(agent,sdfCellsMap,world);
             MOVER.moveAgentOneCell(agent, agent.path[0], sdfCellsMap);
         }
     });
