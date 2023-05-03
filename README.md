@@ -1,2 +1,2 @@
 # pathplanningThreeJS
-**Our code is in longRangeAgents.html**
+**Our first part of the code is in longRangeAgents.html**
